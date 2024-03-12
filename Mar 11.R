@@ -112,46 +112,75 @@ plotcoef <- function(plotthis, name, coef_values) {
 }
 
 ui <- dashboardPage(
-  dashboardHeader(title = "Visual exploration of the birthweight dataset"),
+  dashboardHeader(title = "Quantile Regression Analysis"),
   dashboardSidebar(
     sidebarMenu(
-      menuItem("Coefficients", tabName = "coefficients", icon = icon("chart-line")),
-      menuItem("Coefficients2", tabName = "coefficients2", icon = icon("chart-line"))
+      menuItem("Coefficient1", tabName = "coefficient1", icon = icon("chart-line")),
+      menuItem("Coefficient2", tabName = "coefficient2", icon = icon("chart-line")),
+      menuItem("Comparison fitted values", tabName = "comparison", icon = icon("chart-line"))
     )
   ),
   dashboardBody(
     tabItems(
-      tabItem(tabName = "coefficients",
+      tabItem(tabName = "coefficient1",
               fluidRow(
-                box(selectInput('id1', 'Plot coefficients for:', choices = name)),
+                box(selectInput('id1', 'Quantile Coefficients weight~everything', choices = name)),
                 box(plotOutput('coef1'), width = 12)
               )
       ),
-      tabItem(tabName = "coefficients2",
+      tabItem(tabName = "coefficient2",
               fluidRow(
-                box(selectInput('id2', 'Plot coefficients for:', choices = name)),
+                box(selectInput('id2', 'Quantile Coefficients weight~everthing except race', choices = name)),
                 box(plotOutput('coef2'), width = 12)
               )
+      ),
+      tabItem(tabName = "comparison",
+        fluidRow(
+          box(title = "Compare Fitted Values", status = "primary", solidHeader = TRUE, 
+              sliderInput("id3", "Select τ (tau):", min = 0.05, max = 0.95, value = 0.5, step = 0.5),
+              plotOutput("comparePlot"))
+              )
       )
-    )
   )
 )
+)
+
+new_data1 <- as.data.frame(X)
+new_data2 <- new_data1[, -which(names(new_data1) == "black")]
 
 server <- function(input, output) {
   output$coef1 <- renderPlot({
     plotcoef(input$id1, name, coef_values)
+    # print('testing')
   })
   output$coef2 <- renderPlot({
     plotcoef(input$id2, name, coef_values_except_race)
+    # print('testing')
+  })
+  output$comparePlot <- renderPlot({
+    # Predictions for each model
+    # Calculate the first row separately and then apply the rest
+    coeff1 <- coef_values[, which(colnames(coef_values) == paste0("tau..", input$id3))]
+    coeff2 <- coef_values_except_race[, which(colnames(coef_values_except_race) == paste0("tau..", input$id3))]
+    
+    fitted1 <- apply(coef_values, 1, function(coeff1) coeff1[1] + sum(coeff1[-1] * t(new_data1)))  # 1: row-wise, 2: column-wise
+    fitted2 <- apply(coef_values_except_race, 1, function(coeff2) coeff2[1] + sum(coeff2[-1] * t(new_data2)))
+    print(fitted1)
+    print(length(fitted1))
+    print(fitted2)
+    print(length(fitted2))
+
+    # Plotting the comparison
+    plot(fitted1, fitted2, xlab = "Fitted Values from Model 1", ylab = "Fitted Values from Model 2",
+         main = paste("Comparison of Fitted Values at τ =", input$tau))
+    abline(0, 1)  # Adds a 45-degree line for reference
   })
 }
 
-shinyApp(ui = ui, server = server)
-
+shinyApp(ui, server)
 
 # Look at the prediction, think about
 # 1. why are the coefficients for the "married" covariate be lower if race is included in the quantile regression?
 # 2. in the predicted values, why are the predictions for # black mothers higher?
 # 3. why are the scatter points divided into 2 clusters? 
-
 
