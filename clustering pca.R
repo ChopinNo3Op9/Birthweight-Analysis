@@ -110,5 +110,3 @@ pc2 <- res$x[,2]
 par(mfrow = c(1,2))
 plot(pc1, pc2, col = iris$Species)  # real
 plot(pc1, pc2, col = clustering$cluster)  # predicted
-
-
