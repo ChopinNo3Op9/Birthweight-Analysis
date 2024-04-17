@@ -20,7 +20,7 @@ names(qr.1)
 coef <- qr.1$coefficients
 coef
 
-summary(qr.1)
+# summary(qr.1)
 
 # different optimization algorithms for quantile regression
 system.time(
